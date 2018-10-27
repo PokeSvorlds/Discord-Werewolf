@@ -2055,7 +2055,7 @@ async def cmd_clone(message, parameters):
             else:
                 await reply(message, "Could not find player " + parameters)
                 
-@cmd('side', [2, 0], "```\n{0}side <player1>\n\n If you are a turncoat, switches which team you are siding with.```")
+@cmd('side', [2, 0], "```\n{0}side <villagers>/<wolves>\n\nIf you are a turncoat, switches which team you are siding with.```")
 async def cmd_side(message, parameters):
     if not session[0] or message.author.id not in session[1] or get_role(message.author.id, 'role') not in COMMANDS_FOR_ROLE['side'] or not session[1][message.author.id][0]:
         return
@@ -2068,7 +2068,7 @@ async def cmd_side(message, parameters):
     else:
         if parameters == "":
             await reply(message, roles[session[1][message.author.id][1]][2])
-        elif parameters == ("villagers" or "village" or "v" or "vils") and 'side:villagers' not in session[1][message.author.id][4]:
+        elif parameters == ("villagers" or "village" or "v" or "vils" or "vils") and 'side:villagers' not in session[1][message.author.id][4]:
             if 'side:wolves' in session[1][message.author.id][4]:
                 session[1][message.author.id][4].remove('side:wolves')
             if 'sided' not in session[1][message.author.id][4]:
@@ -2076,7 +2076,7 @@ async def cmd_side(message, parameters):
             session[1][message.author.id][4].append('side:villagers')
             await reply(message, "You are now siding with the village.")
             return
-        elif parameters == ("wolves" or "wolf" or "w") and 'side:wolves' not in session[1][message.author.id][4]:
+        elif parameters == ("wolves" or "wolf" or "w" or "woof") and 'side:wolves' not in session[1][message.author.id][4]:
             if 'side:villagers' in session[1][message.author.id][4]:
                 session[1][message.author.id][4].remove('side:villagers')
             if 'sided' not in session[1][message.author.id][4]:
@@ -3228,6 +3228,8 @@ def win_condition():
             winners.append(player)
         if get_role(player, 'role') == 'lycan' and session[1][player][0] and win_team == 'village':
             winners.append(player)
+        if (get_role(player, 'role') == 'turncoat') and (('side:villagers' in session[1][player][4] and win_team == 'village') or ('side:wolves' in session[1][player][4] and win_team == 'wolf')):
+            winners.append(player)
     return [win_team, win_lore + '\n\n' + end_game_stats(), winners]
 
 def end_game_stats():
@@ -3879,12 +3881,57 @@ async def run_game():
         for gamemode in vote_dict:
             if vote_dict[gamemode] >= len(session[1]) // 2 + 1:
                 session[6] = gamemode
-                break
-        else:
-            if datetime.now().date() == __import__('datetime').date(2018, 4, 1):
-                session[6] = random.choice(gamemodes)
-            else:
-                session[6] = 'default'
+        if not session[6]:
+            #setting the mode taking votes and chances into consideration for probabilities
+            #aleatoire, charming, default, evilvillage, foolish, lycan, mad, mudkip, and noreveal
+            ALEATOIRE = gamemodes['aleatoire']['chance'] 
+            if len(session[1]) < gamemodes['aleatoire']['min_players'] or len(session[1]) > gamemodes['aleatoire']['max_players']:
+                ALEATOIRE = 0
+            elif 'aleatoire' in vote_dict:
+                ALEATOIRE += int((vote_dict['aleatoire']/len(session[1])) * 200)
+            CHARMING = gamemodes['charming']['chance'] 
+            if len(session[1]) < gamemodes['charming']['min_players'] or len(session[1]) > gamemodes['charming']['max_players']:
+                CHARMING = 0
+            elif 'charming' in vote_dict:
+                CHARMING += int((vote_dict['charming']/len(session[1])) * 200)
+            DEFAULT = gamemodes['default']['chance'] 
+            if len(session[1]) < gamemodes['default']['min_players'] or len(session[1]) > gamemodes['default']['max_players']:
+                DEFAULT = 0
+            elif 'default' in vote_dict:
+                DEFAULT += int((vote_dict['default']/len(session[1])) * 200)
+            EVIL = gamemodes['evilvillage']['chance'] 
+            if len(session[1]) < gamemodes['evilvillage']['min_players'] or len(session[1]) > gamemodes['evilvillage']['max_players']:
+                EVIL = 0
+            elif 'evilvillage' in vote_dict:
+                EVIL += int((vote_dict['evilvillage']/len(session[1])) * 200)
+            FOOLISH = gamemodes['foolish']['chance'] 
+            if len(session[1]) < gamemodes['foolish']['min_players'] or len(session[1]) > gamemodes['foolish']['max_players']:
+                FOOLISH = 0
+            elif 'foolish' in vote_dict:
+                FOOLISH += int((vote_dict['foolish']/len(session[1])) * 200)
+            LYCAN = gamemodes['lycan']['chance'] 
+            if len(session[1]) < gamemodes['lycan']['min_players'] or len(session[1]) > gamemodes['lycan']['max_players']:
+                LYCAN = 0
+            elif 'lycan' in vote_dict:
+                LYCAN += int((vote_dict['lycan']/len(session[1])) * 200)
+            MAD = gamemodes['mad']['chance'] 
+            if len(session[1]) < gamemodes['mad']['min_players'] or len(session[1]) > gamemodes['mad']['max_players']:
+                MAD = 0
+            elif 'mad' in vote_dict:
+                MAD += int((vote_dict['mad']/len(session[1])) * 200)
+            MUDKIP = gamemodes['mudkip']['chance'] 
+            if len(session[1]) < gamemodes['mudkip']['min_players'] or len(session[1]) > gamemodes['mudkip']['max_players']:
+                MUDKIP = 0
+            elif 'mudkip' in vote_dict:
+                MUDKIP += int((vote_dict['mudkip']/len(session[1])) * 200)
+            NOREVEAL = gamemodes['noreveal']['chance'] 
+            if len(session[1]) < gamemodes['noreveal']['min_players'] or len(session[1]) > gamemodes['noreveal']['max_players']:
+                NOREVEAL = 0
+            elif 'noreveal' in vote_dict:
+                NOREVEAL += int((vote_dict['noreveal']/len(session[1])) * 200)
+            mode = (random.choice((['aleatoire'] * ALEATOIRE + ['charming'] * CHARMING + ['default'] * DEFAULT + ['evilvillage'] * EVIL\
+            + ['foolish'] * FOOLISH + ['lycan'] * LYCAN + ['mad'] * MAD + ['mudkip'] * MUDKIP + ['noreveal'] * NOREVEAL)))
+            session[6] = mode
     for player in session[1]:
         session[1][player][1] = ''
         session[1][player][2] = ''
@@ -3963,9 +4010,7 @@ async def game_loop(ses=None):
                             session[1][player][2] = random.choice(["pestilence_totem", "death_totem"]) if not night == 1 else "death_totem"
                         if session[6] == 'aleatoire':
                             #protection (40%), death (20%), retribution (20%), silence (10%), desperation (5%), pestilence (5%).
-                            session[1][player][2] = random.choice(("protection_totem", "protection_totem", "protection_totem", "protection_totem", \
-                            "protection_totem", "protection_totem", "protection_totem", "protection_totem", "death_totem", "death_totem", "death_totem", \
-                            "death_totem", "retribution_totem", "retribution_totem", "retribution_totem", "retribution_totem", "silence_totem", "silence_totem", "desperation_totem", "pestilence_totem"))
+                            session[1][player][2] = random.choice(["protection_totem"] * 8 + ["death_totem"] * 4 + ["retribution_totem"] * 4 + ["silence_totem"] * 2 + ["desperation_totem"] + ["pestilence_totem"])
                         else:
                             session[1][player][2] = random.choice(SHAMAN_TOTEMS)
                     elif role == 'wolf shaman':
@@ -5068,6 +5113,7 @@ gamemodes = {
         'description' : "The default gamemode.",
         'min_players' : 4,
         'max_players' : 24,
+        'chance' : 30,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
             'wolf' :
@@ -5174,6 +5220,7 @@ gamemodes = {
         'description' : "Watch out, because the fool is always there to steal the win.",
         'min_players' : 8,
         'max_players' : 24,
+        'chance' : 10,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
             'wolf' :
@@ -5211,6 +5258,7 @@ gamemodes = {
         'description' : "Chaotic and unpredictable. Any role, including wolves, can be a gunner.",
         'min_players' : 4,
         'max_players' : 16,
+        'chance' : 0,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16
             #wolf team
@@ -5248,6 +5296,7 @@ gamemodes = {
         'description' : "Be careful who you visit! ( ͡° ͜ʖ ͡°)",
         'min_players' : 4,
         'max_players' : 16,
+        'chance' : 0,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16
             'wolf' :
@@ -5269,6 +5318,7 @@ gamemodes = {
         'description' : "Random totems galore.",
         'min_players' : 4,
         'max_players' : 16,
+        'chance' : 0,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16
             'wolf' :
@@ -5286,6 +5336,7 @@ gamemodes = {
         'description' : "Originally an april fool's joke, this gamemode is interesting, to say the least.",
         'min_players' : 4,
         'max_players' : 24,
+        'chance' : 0,
         'roles' : {}
         },
     'valentines' : {
@@ -5295,6 +5346,7 @@ gamemodes = {
         # [16] matchmaker(12) [17] wolf(4) [18] mad scientist [19] matchmaker(13) [20] matchmaker(14) [21] wolf(5) [22] matchmaker(15) [23] matchmaker(16) [24] wolf(6)
         'min_players' : 8,
         'max_players' : 24,
+        'chance' : 0,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
             'wolf' :
@@ -5310,6 +5362,7 @@ gamemodes = {
         'description' : 'Majority of the village is wolf aligned, safes must secretly try to kill the wolves.',
         'min_players' : 6,
         'max_players' : 18,
+        'chance' : 5,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18
             'wolf' :
@@ -5335,6 +5388,7 @@ gamemodes = {
         'description' : "Most players get a gun, quickly shoot all the wolves!",
         'min_players' : 8,
         'max_players' : 17,
+        'chance' : 0,
         'roles' : {
             # 4, 5, 6,7, 8, 9, 10,11,12,13,14,15,16,17
             'wolf' :
@@ -5365,6 +5419,7 @@ gamemodes = {
         'description' : "Other than ensuring the game doesn't end immediately, no one knows what roles will appear.",
         'min_players' : 8,
         'max_players' : 20,
+        'chance' : 0,
         'roles' : {
         }
     },
@@ -5372,6 +5427,7 @@ gamemodes = {
         'description' : "Why are all the professors named after trees?",
         'min_players' : 4,
         'max_players' : 15,
+        'chance' : 5,
         'roles' : {
             'wolf' :
             [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
@@ -5407,6 +5463,7 @@ gamemodes = {
         'description' : "Charmed players must band together to find the piper in this game mode.",
         'min_players' : 6,
         'max_players' : 24,
+        'chance' : 10,
          'roles' : {
             'seer' :
             [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -5448,6 +5505,7 @@ gamemodes = {
         'description' : "This game mode has mad scientist and many things that may kill you.",
         'min_players' : 7,
         'max_players' : 22,
+        'chance' : 5,
         'roles' : {
             #         7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22,
             'villager' :
@@ -5493,6 +5551,7 @@ gamemodes = {
         'description' : "Many lycans will turn into wolves. Hunt them down before the wolves overpower the village.",
         'min_players' : 7,
         'max_players' : 21,
+        'chance' : 5,
         'roles' : {
             #         7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21
             'villager' :
@@ -5530,6 +5589,7 @@ gamemodes = {
         'description' : "Many killing roles and roles that cause chain deaths. Living has never been so hard.",
         'min_players' : 6,
         'max_players' : 24,
+        'chance' : 0,
         'roles' : {
             #      6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
             'villager' :
@@ -5573,6 +5633,7 @@ gamemodes = {
         'description' : "Roles are not revealed on death.",
         'min_players' : 4,
         'max_players' : 21,
+        'chance' : 2,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21
             'villager' :
@@ -5612,6 +5673,7 @@ gamemodes = {
         'description' : "Lots of roles to avoid killing who may not even know it themself.",
         'min_players' : 8,
         'max_players' : 24,
+        'chance' : 10,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
             'villager' :
