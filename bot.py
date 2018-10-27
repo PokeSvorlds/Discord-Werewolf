@@ -2365,7 +2365,10 @@ async def cmd_gamemode(message, parameters):
         str(gamemodes[gamemode]['min_players']) + '-' + str(gamemodes[gamemode]['max_players']),
         gamemodes[gamemode]['description'], gamemode))
     else:
-        await reply(message, "Available gamemodes: {}".format(', '.join(sorted(gamemodes))))
+        game_list = ""
+        game_list += "\n```ini\n[Main Modes] " + ", ".join(sorted(x for x in (gamemodes) if gamemodes[x]['chance'] != 0))
+        game_list += "\n[Majority Only] " + ", ".join(sorted(x for x in (gamemodes) if gamemodes[x]['chance'] == 0)) + "```"
+        await reply(message, game_list)
 
 @cmd('verifygamemode', [1, 1], "```\n{0}verifygamemode [<gamemode>]\n\nChecks to make sure [<gamemode>] is valid.```", 'verifygamemodes')
 async def cmd_verifygamemode(message, parameters):
