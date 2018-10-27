@@ -2068,7 +2068,7 @@ async def cmd_side(message, parameters):
     else:
         if parameters == "":
             await reply(message, roles[session[1][message.author.id][1]][2])
-        elif parameters == ("villagers" or "village" or "v" or "vils" or "vil") and 'side:villagers' not in session[1][message.author.id][4]:
+        elif parameters in ["villagers", "village", "v", "vils", "vil"] and 'side:villagers' not in session[1][message.author.id][4]:
             if 'side:wolves' in session[1][message.author.id][4]:
                 session[1][message.author.id][4].remove('side:wolves')
             if 'sided' not in session[1][message.author.id][4]:
@@ -2076,7 +2076,7 @@ async def cmd_side(message, parameters):
             session[1][message.author.id][4].append('side:villagers')
             await reply(message, "You are now siding with the village.")
             return
-        elif parameters == ("wolves" or "wolf" or "w" or "woof") and 'side:wolves' not in session[1][message.author.id][4]:
+        elif parameters in ["wolves", "wolf", "w", "woof"] and 'side:wolves' not in session[1][message.author.id][4]:
             if 'side:villagers' in session[1][message.author.id][4]:
                 session[1][message.author.id][4].remove('side:villagers')
             if 'sided' not in session[1][message.author.id][4]:
