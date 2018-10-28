@@ -1314,7 +1314,7 @@ async def cmd_kill(message, parameters):
             redirected_targets = []
             for player in valid_targets:
                 if 'misdirection_totem2' in session[1][message.author.id][4]:
-                    new_target = misdirect(message.author.id, alive_players=[x for x in session[1] if session[1][x][0] and get_role(x, "role") not in WOLFCHAT_ROLES and not (get_role(x, 'role') == 'succubus' and 'entranced' in session[1][message.author.id][4])])
+                    new_target = misdirect(player, alive_players=[x for x in session[1] if session[1][x][0] and get_role(x, "role") not in WOLFCHAT_ROLES and not (get_role(x, 'role') == 'succubus' and 'entranced' in session[1][message.author.id][4])])
                     while new_target in redirected_targets:
                         new_target = misdirect(message.author.id, alive_players=[x for x in session[1] if session[1][x][0] and get_role(x, "role") not in WOLFCHAT_ROLES and not (get_role(x, 'role') == 'succubus' and 'entranced' in session[1][message.author.id][4])])
                     redirected_targets.append(new_target)
@@ -4346,8 +4346,10 @@ async def game_loop(ses=None):
                     session[1][hexed][4].append('hex')
 
             # Doomsayer stuff
+            doomed = []
             for doomsayer in [x for x in session[1] if get_role(x, 'role') == 'doomsayer' and [a for a in session[1][x][4] if a.startswith('doomdeath:')]]:
                 target = [a.split(':')[1] for a in session[1][doomsayer][4] if a.startswith('doomdeath:')].pop()
+                doomed.append(target)
                 killed_dict[target] += 1
                 session[1][doomsayer][4] = [a for a in session[1][doomsayer][4] if not a.startswith('doomdeath:')]
 
@@ -4614,12 +4616,17 @@ async def game_loop(ses=None):
                 await send_lobby("Night lasted **{0:02d}:{1:02d}**. The villagers wake up and search the village.\n\n{2}".format(
                                                                                         night_elapsed.seconds // 60, night_elapsed.seconds % 60, killed_msg))
 
-            killed_dict = {}
+            killed_dict_team = {}
             for player in killed_temp:
-                kill_team = "wolf" if player not in gunner_revenge + list(revengekill) + death_totemed and player in wolf_deaths else "village"
-                killed_dict[player] = ("night kill", kill_team)
-            if killed_dict:
-                await player_deaths(killed_dict)
+                kill_team = "wolf" if player not in gunner_revenge + list(revengekill) + death_totemed and (player in wolf_deaths or doomed) else "village"
+                if killed_dict[player] > 1:
+                    if killed_dict[player] == 2 and player in wolf_deaths and doomed:
+                        kill_team = "wolf"
+                    else:
+                        kill_team = "village"
+                killed_dict_team[player] = ("night kill", kill_team)
+            if killed_dict_team:
+                await player_deaths(killed_dict_team)
 
             if session[0] and win_condition() == None:
                 totem_holders = sort_players(totem_holders)
@@ -4909,7 +4916,7 @@ async def game_loop(ses=None):
                         'revealing_totem', 'influence_totem', 'impatience_totem', 'pacifism_totem', 'injured', 'desperation_totem']]
                     session[1][player][2] = ''
                     session[1][player][4] = [x for x in session[1][player][4] if not x.startswith('vote:')]
-                    if get_role(player, 'role') == 'amnesiac' and night == 3 and [session][player][0]:
+                    if get_role(player, 'role') == 'amnesiac' and night == 3 and session[1][player][0]:
                         role = [x.split(':')[1].replace("_", " ") for x in session[1][player][4] if x.startswith("role:")].pop()
                         session[1][player][1] = role
                         session[1][player][4] = [x for x in session[1][player][4] if not x.startswith("role:")]
@@ -5109,7 +5116,7 @@ roles = {'wolf' : ['wolf', 'wolves', "Your job is to kill all of the villagers. 
          'piper' : ['neutral', 'pipers', "You can select up to two players to charm each night. The charmed players will know each other, but not who charmed them. You win when all other players are charmed. Use `charm <player1> and <player2>` to select the players to charm, or `charm <player>` to charm just one player."],
          'warlock' : ['wolf', 'warlocks', "Each night you can curse someone with `curse <player>` to turn them into a cursed villager, so the seer sees them as wolf. Act quickly, as your curse applies as soon as you cast it! Only detectives can reveal your true identity, seers will see you as a regular villager."],
          'mystic' : ['village', 'mystics', "Each night you will sense the number of evil villagers there are."],
-         'wolf mystic' : ['wolf', 'wolf mystics', "Each night you will sense the number of good villagers with a power there are. You can also use `kill <player>` to kill a villager."],
+         'wolf mystic' : ['wolf', 'wolf mystics', "Each night you will sense the number of villagers with a power that oppose you. You can also use `kill <player>` to kill a villager."],
          'mad scientist' : ['village', 'mad scientists', "You win with the villagers, and should you die, you will let loose a potent chemical concoction that will kill the players next to you if they are still alive."],
          'clone' : ['neutral', 'clones', "You can select someone to clone with `clone <player>`. If that player dies, you become their role. You may only clone someone during the first night."],
          'lycan' : ['neutral', 'lycans', "You are currently on the side of the villagers, but will turn into a wolf instead of dying if you are targeted by the wolves during the night."],
