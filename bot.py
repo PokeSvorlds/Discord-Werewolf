@@ -860,6 +860,11 @@ async def cmd_stats(message, parameters):
         reply_msg += "Total roles: "
         total_roles = dict(orig_roles)
         reply_msg += ', '.join("{}: {}".format(x, total_roles[x]) for x in sort_roles(total_roles))
+        
+        if session[6] == 'noreveal':
+            reply_msg += "```"
+            await reply(message, reply_msg)
+            return
 
         for role in list(role_dict):
             # list is used to make a copy
@@ -4499,6 +4504,7 @@ async def game_loop(ses=None):
             for player in sort_players(wolf_deaths):
                 if ('gunner' in get_role(player, 'templates') or 'sharpshooter' in get_role(player, 'templates')) and \
                 session[1][player][4].count('bullet') > 0 and killed_dict[player] > 0:
+                    target = ""
                     if random.random() < GUNNER_REVENGE_WOLF:
                         revenge_targets = [x for x in session[1] if session[1][x][0] and get_role(x, 'role') in [
                             'wolf', 'doomsayer', 'werecrow', 'werekitten', 'wolf shaman', 'wolf mystic']]
@@ -4520,7 +4526,7 @@ async def game_loop(ses=None):
                                     killed_msg += "Fortunately **{}** had bullets and **{}**, a **{}**, was shot dead.\n".format(
                                         get_name(player), get_name(target), get_role(target, 'death'))
                     if session[1][player][4].count('bullet') > 0:
-                        give_gun_targets = [x for x in session[1] if session[1][x][0] and get_role(x, 'role') in WOLFCHAT_ROLES]
+                        give_gun_targets = [x for x in session[1] if session[1][x][0] and get_role(x, 'role') in WOLFCHAT_ROLES and x != target]
                         if len(give_gun_targets) > 0:
                             give_gun = random.choice(give_gun_targets)
                             if not 'gunner' in get_role(give_gun, 'templates'):
@@ -4903,7 +4909,7 @@ async def game_loop(ses=None):
                         'revealing_totem', 'influence_totem', 'impatience_totem', 'pacifism_totem', 'injured', 'desperation_totem']]
                     session[1][player][2] = ''
                     session[1][player][4] = [x for x in session[1][player][4] if not x.startswith('vote:')]
-                    if get_role(player, 'role') == 'amnesiac' and night == 3:
+                    if get_role(player, 'role') == 'amnesiac' and night == 3 and [session][player][0]:
                         role = [x.split(':')[1].replace("_", " ") for x in session[1][player][4] if x.startswith("role:")].pop()
                         session[1][player][1] = role
                         session[1][player][4] = [x for x in session[1][player][4] if not x.startswith("role:")]
@@ -5636,7 +5642,7 @@ gamemodes = {
         'description' : "Roles are not revealed on death.",
         'min_players' : 4,
         'max_players' : 21,
-        'chance' : 2,
+        'chance' : 1,
         'roles' : {
             #4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20,21
             'villager' :
@@ -5673,7 +5679,7 @@ gamemodes = {
         }
     },
     'aleatoire' : {
-        'description' : "Lots of roles to avoid killing who may not even know it themself.",
+        'description' : "Lots of roles to avoid killing who may not even know it themselves.",
         'min_players' : 8,
         'max_players' : 24,
         'chance' : 10,
