@@ -3712,42 +3712,46 @@ async def player_deaths(players_dict): # players_dict = {dead : (reason, kill_te
                         await player_deaths({end_voter : ("desperation", get_role(player, 'actualteam'))})
                 
                 #clone taking the dead's role
-                for clone in [x for x in session[1] if (session[1][x][0] and get_role(x, 'role') == "clone" and "clone:{}".format(player) in session[1][x][4] and session[1][x][0])]:
+                for clone in [x for x in session[1] if (session[1][x][0] and get_role(x, 'role') == "clone" and "clone:{}".format(player) in session[1][x][4])]:
                     member = client.get_server(WEREWOLF_SERVER).get_member(clone)
                     role = get_role(player, 'role')
-                    if role == "amnesiac":
-                        role = [x.split(':')[1].replace("_", " ") for x in session[1][player][4] if x.startswith("role:")].pop()
-                    if role == "priest" and bless in session[1][player][4]:
-                        session[1][clone][4].append("bless")
-                    elif role == "hunter" and "hunterbullet" in session[1][player][4]:
-                        session[1][clone][4].append("hunterbullet")
-                    elif role == "clone":  #this wont work on a clone cloning a clone cloning a clone, only a clone cloning a clone cloning another role
-                        for new_target in [x for x in session[1][player][4] if x.startswith('clone:')]:
-                            session[1][clone][4].append(new_target)
-                            session[1][clone][4].remove("clone:{}".format(player))
-                            target = (new_target.split(':')[1])
-                            if not session[1][target][0]:
-                                role = get_role(target)
-                            else:
-                                role = ""
-                                if member:
-                                    try:
-                                        await client.send_message(member, "Your target was a clone and you are now cloning their target, **{0}**.".format(get_name(target)))
-                                    except discord.Forbidden:
-                                        pass
-                    elif role == "piper"  and "charmed" in session[1][clone][4]:
-                        session[1][clone][4].remove("charmed")
-                    if role:
-                        session[1][clone][1] = role
+                    cloning = player
+                    #finding final target from who the clones were cloning
+                    if role == "clone":
+                        while role == 'clone' and not session[1][cloning][0]:
+                            for new_target in [x for x in session[1][player][4] if x.startswith('clone:')]:
+                                session[1][clone][4].append(new_target)
+                                session[1][clone][4].remove("clone:{}".format(cloning))
+                                cloning = (new_target.split(':')[1])
+                                role == get_role(cloning, 'role')
+                        if member:
+                            try:
+                                await client.send_message(member, "Your target was a clone and you are now cloning their target, **{0}**.".format(get_name(cloning)))
+                            except discord.Forbidden:
+                                pass
+                                
+                    #if the clone target is dead (in case we cloned a clone but their target is alive)
+                    if not session[1][cloning][0]:
+                        if role == "amnesiac":
+                            role = [x.split(':')[1].replace("_", " ") for x in session[1][player][4] if x.startswith("role:")].pop()
+                        if role == "priest" and bless in session[1][player][4]:
+                            session[1][clone][4].append("bless")
+                        elif role == "hunter" and "hunterbullet" in session[1][player][4]:
+                            session[1][clone][4].append("hunterbullet")
+                        elif role == "piper"  and "charmed" in session[1][clone][4]:
+                            session[1][clone][4].remove("charmed")
+                        elif role == "succubus"  and "entranced" in session[1][clone][4]:
+                            session[1][clone][4].remove("entranced")
+                            
                         if member:
                             try:
                                 await client.send_message(member, "You have cloned your target and are now a **{0}**.".format(role))
                             except discord.Forbidden:
                                 pass
-                    if role in WOLFCHAT_ROLES:
-                        await wolfchat("{0} is now a **{1}**!".format(get_name(clone), role))
-                    elif role == "minion":
-                       await _send_role_info(clone)
+                        if role in WOLFCHAT_ROLES:
+                            await wolfchat("{0} is now a **{1}**!".format(get_name(clone), role))
+                        elif role == "minion":
+                           await _send_role_info(clone)
                        
                 if get_role(player, 'role') ==  'succubus' and not [x for x in session[1] if session[1][x][0] and get_role(x, 'role') == 'succubus']:
                     if kill_team != 'bot':
@@ -3809,18 +3813,7 @@ async def player_deaths(players_dict): # players_dict = {dead : (reason, kill_te
             session[1][p][4] = [x for x in session[1][p][4] if x != "assassinate:{}".format(player)]
             if get_role(p, 'role') == 'village drunk':
                 session[1][p][4].append('assassinate:{}'.format(random.choice([x for x in session[1] if x != p])))
-        #clone taking the dead's role
-        for clone in [x for x in session[1] if (get_role(x, 'role') == "clone" and "clone:{}".format(player) in session[1][x][4])]:
-            role = get_role(player, 'role')
-            session[1][clone][1] = role
-            if role in WOLFCHAT_ROLES:
-                await wolfchat("{0} is now a **{1}**!".format(get_name(clone), role))
-            else:
-                if member:
-                    try:
-                        await client.send_message(member, "You have cloned your target and are now a **{0}**.".format(role))
-                    except discord.Forbidden:
-                         pass
+                
         await log(0, "{} ({}) PLAYER DEATH {} FOR {}".format(get_name(player), player, ingame, reason))
 
 async def check_traitor():
@@ -4346,10 +4339,8 @@ async def game_loop(ses=None):
                     session[1][hexed][4].append('hex')
 
             # Doomsayer stuff
-            doomed = []
             for doomsayer in [x for x in session[1] if get_role(x, 'role') == 'doomsayer' and [a for a in session[1][x][4] if a.startswith('doomdeath:')]]:
                 target = [a.split(':')[1] for a in session[1][doomsayer][4] if a.startswith('doomdeath:')].pop()
-                doomed.append(target)
                 killed_dict[target] += 1
                 session[1][doomsayer][4] = [a for a in session[1][doomsayer][4] if not a.startswith('doomdeath:')]
 
@@ -4616,17 +4607,12 @@ async def game_loop(ses=None):
                 await send_lobby("Night lasted **{0:02d}:{1:02d}**. The villagers wake up and search the village.\n\n{2}".format(
                                                                                         night_elapsed.seconds // 60, night_elapsed.seconds % 60, killed_msg))
 
-            killed_dict_team = {}
+            killed_dict = {}
             for player in killed_temp:
-                kill_team = "wolf" if player not in gunner_revenge + list(revengekill) + death_totemed and (player in wolf_deaths or doomed) else "village"
-                if killed_dict[player] > 1:
-                    if killed_dict[player] == 2 and player in wolf_deaths and doomed:
-                        kill_team = "wolf"
-                    else:
-                        kill_team = "village"
-                killed_dict_team[player] = ("night kill", kill_team)
-            if killed_dict_team:
-                await player_deaths(killed_dict_team)
+                kill_team = "wolf" if player not in gunner_revenge + list(revengekill) + death_totemed and player in wolf_deaths else "village"
+                killed_dict[player] = ("night kill", kill_team)
+            if killed_dict:
+                await player_deaths(killed_dict)
 
             if session[0] and win_condition() == None:
                 totem_holders = sort_players(totem_holders)
